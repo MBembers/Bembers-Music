@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Bembers Music</string>
+    <string name="song_title_placeholder">Title of the song</string>
 </resources>
