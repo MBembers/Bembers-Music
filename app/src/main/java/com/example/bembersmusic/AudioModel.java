@@ -1,5 +1,7 @@
 package com.example.bembersmusic;
 
+import android.media.MediaMetadataRetriever;
+
 import java.io.Serializable;
 
 public class AudioModel implements Serializable {
