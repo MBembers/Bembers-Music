@@ -10,9 +10,9 @@ import java.util.Random;
 
 public class MyMediaPlayer extends MediaPlayer{
     static MyMediaPlayer instance;
-    ArrayList<AudioModel> audiosList;
-    LinkedList<AudioModel> audiosQueue;
-    AudioModel currentAudio;
+    ArrayList<MediaItemData> audiosList;
+    LinkedList<MediaItemData> audiosQueue;
+    MediaItemData currentAudio;
     boolean autoplay = false;
     private static int currentIndex = -1;
     private boolean shuffle;
@@ -20,7 +20,7 @@ public class MyMediaPlayer extends MediaPlayer{
     private final ArrayList<AudioChangedListener> audioChangedListenerList = new ArrayList<>();
     private AudioStartedListener audioStartedListener;
 
-    public MyMediaPlayer(ArrayList<AudioModel> audiosList) {
+    public MyMediaPlayer(ArrayList<MediaItemData> audiosList) {
         super();
         this.audiosList = audiosList;
         this.currentAudio = audiosList.get(0);
@@ -28,11 +28,11 @@ public class MyMediaPlayer extends MediaPlayer{
         setOnCompletionListener(mediaPlayer -> completionHandler());
     }
 
-    public static MyMediaPlayer createInstance(ArrayList<AudioModel> audiosList){
+    public static MyMediaPlayer createInstance(ArrayList<MediaItemData> audiosList){
         if(instance == null){
             instance = new MyMediaPlayer(audiosList);
         }
-        Log.d("MyMediaPlayer", "createInstance: Created MyMediaPlayer");
+        Log.d("MyMediaPlayer", "createInstance: CREATED MyMediaPlayer");
         return instance;
     }
 
@@ -52,6 +52,16 @@ public class MyMediaPlayer extends MediaPlayer{
             e.printStackTrace();
         }
     }
+
+    public void prepareCurrentAudio(){
+        try {
+            setDataSource(currentAudio.getPath());
+            prepare();
+        }
+        catch (IOException e){
+            e.printStackTrace();
+        }
+        }
 
     public void setCurrentAudioFromIndex(int index){
         currentIndex = index;
@@ -197,35 +207,31 @@ public class MyMediaPlayer extends MediaPlayer{
         return shuffle;
     }
 
-    public boolean isRepeat(){
-        return isLooping();
-    }
-
     public void setShuffle(boolean shuffle) {
         this.shuffle = shuffle;
     }
 
-    public ArrayList<AudioModel> getAudiosList() {
+    public ArrayList<MediaItemData> getAudiosList() {
         return audiosList;
     }
 
-    public void setAudiosList(ArrayList<AudioModel> audiosList) {
+    public void setAudiosList(ArrayList<MediaItemData> audiosList) {
         this.audiosList = audiosList;
     }
 
-    public LinkedList<AudioModel> getAudiosQueue() {
+    public LinkedList<MediaItemData> getAudiosQueue() {
         return audiosQueue;
     }
 
-    public void setAudiosQueue(LinkedList<AudioModel> audiosQueue) {
+    public void setAudiosQueue(LinkedList<MediaItemData> audiosQueue) {
         this.audiosQueue = audiosQueue;
     }
 
-    public AudioModel getCurrentAudio() {
+    public MediaItemData getCurrentAudio() {
         return currentAudio;
     }
 
-    public void setCurrentAudio(AudioModel currentAudio) {
+    public void setCurrentAudio(MediaItemData currentAudio) {
         this.currentAudio = currentAudio;
     }
 

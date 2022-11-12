@@ -8,7 +8,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -16,6 +18,7 @@ import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
@@ -29,15 +32,17 @@ import android.widget.Toast;
 import java.io.File;
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ServiceConnection {
 
     RecyclerView recyclerView;
     TextView noMusicTextView, songBarTitleTextView, songBarAuthorTextView;
     ImageView songBarIcon;
     ImageButton songBarPlayBtn;
     RelativeLayout songBarLayout;
-    ArrayList<AudioModel> songsList = new ArrayList<>();
+    ArrayList<MediaItemData> songsList = new ArrayList<>();
     MyMediaPlayer myMediaPlayer;
+    private MediaAudioService mediaAudioService;
+    private boolean boundToService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
             if(author == null){
                 author = "Unknown artist";
             }
-            AudioModel songData = new AudioModel(cursor.getString(1),cursor.getString(0),cursor.getString(2), author);
+            MediaItemData songData = new MediaItemData(cursor.getString(1),cursor.getString(0),cursor.getString(2), author);
             if(new File(songData.getPath()).exists()){
                 mmr.setDataSource(songData.getPath());
                 byte [] data = mmr.getEmbeddedPicture();
@@ -91,54 +96,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if(songsList.size()==0){
-            noMusicTextView.setVisibility(View.VISIBLE);
-        }else{
-            //recyclerview
-            myMediaPlayer = MyMediaPlayer.createInstance(songsList);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
-            recyclerView.setAdapter(new MusicListAdapter(songsList,getApplicationContext()));
-        }
-
-
-
-        songBarLayout.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MusicPlayerActivity.class);
-//            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        });
-
-        myMediaPlayer.addOnAudioChangedListener(this::updateSongBar);
-        myMediaPlayer.addOnAudioChangedListener(this::updateRecycleView);
-        myMediaPlayer.setOnAudioStartedListener(this::updateSongBar);
-
-        MainActivity.this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if(myMediaPlayer !=null){
-                    if(myMediaPlayer.isPlaying()){
-                        songBarPlayBtn.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
-                    }else{
-                        songBarPlayBtn.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
-                    }
-                }
-                new Handler().postDelayed(this,100);
-            }
-        });
-
-        songBarPlayBtn.setOnClickListener(v -> myMediaPlayer.pausePlay());
-
+        doBindService();
     }
 
     public void updateSongBar(){
         Log.d("Handler", "MainActivityHandler: ");
         recyclerView.refreshDrawableState();
         songBarLayout.setVisibility(View.VISIBLE);
-        MyMediaPlayer myMediaPlayer = MyMediaPlayer.getInstance();
-        songBarTitleTextView.setText(myMediaPlayer.getCurrentAudio().getTitle());
-        songBarAuthorTextView.setText(myMediaPlayer.getCurrentAudio().getAuthor());
-        if(myMediaPlayer.getCurrentAudio().getImage() != null)
-            songBarIcon.setImageBitmap(myMediaPlayer.getCurrentAudio().getImage());
+        songBarTitleTextView.setText(mediaAudioService.getCurrentAudio().getTitle());
+        songBarAuthorTextView.setText(mediaAudioService.getCurrentAudio().getAuthor());
+        if(mediaAudioService.getCurrentAudio().getImage() != null)
+            songBarIcon.setImageBitmap(mediaAudioService.getCurrentAudio().getImage());
         else songBarIcon.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.music_icon));
     }
 
@@ -148,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
 
     boolean checkPermission(){
         int result = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
+        result = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
+
         if(result == PackageManager.PERMISSION_GRANTED){
             return true;
         }else{
@@ -160,6 +130,11 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this,"Without read storage permission application won't work properly.",Toast.LENGTH_SHORT).show();
         }else
             ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},77);
+
+        if(ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,Manifest.permission.FOREGROUND_SERVICE)){
+            Toast.makeText(MainActivity.this,"Without foreground permission application won't work properly.",Toast.LENGTH_SHORT).show();
+        }else
+            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.FOREGROUND_SERVICE},727);
     }
 
     @Override
@@ -182,8 +157,109 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if(recyclerView!=null){
-            recyclerView.setAdapter(new MusicListAdapter(songsList,getApplicationContext()));
+        Log.d("MainActivity", "onResume: mediaAudioService = " + mediaAudioService);
+        if(recyclerView != null){
+            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext());
+            listAdapter.setOnItemClickedListener(this::musicListAdapterClickHandler);
+            recyclerView.setAdapter(listAdapter);
         }
+        if(mediaAudioService != null){
+            return;
+        }
+        doBindService();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d("MainActivity", "onPause: mediaAudioService = " + mediaAudioService);
+        if(mediaAudioService != null && boundToService)
+            doUnbindService();
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        MediaAudioService.MyBinder myBinder = (MediaAudioService.MyBinder) iBinder;
+        mediaAudioService = myBinder.getService();
+        myMediaPlayer = mediaAudioService.createMediaPlayer(songsList);
+        myMediaPlayer.prepareCurrentAudio();
+
+        if(songsList.size()==0){
+            noMusicTextView.setVisibility(View.VISIBLE);
+        }else{
+            //recyclerview
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext());
+            listAdapter.setOnItemClickedListener(this::musicListAdapterClickHandler);
+            recyclerView.setAdapter(listAdapter);
+        }
+
+        songBarLayout.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MediaPlayerActivity.class);
+//            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        });
+
+        myMediaPlayer.addOnAudioChangedListener(this::updateSongBar);
+        myMediaPlayer.addOnAudioChangedListener(this::updateRecycleView);
+        myMediaPlayer.setOnAudioStartedListener(this::updateSongBar);
+
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (myMediaPlayer != null) {
+                        if (myMediaPlayer.isPlaying()) {
+                            songBarPlayBtn.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
+                        } else {
+                            songBarPlayBtn.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
+                        }
+                    }
+                }
+                catch (IllegalStateException e){
+                    e.printStackTrace();
+                }
+                new Handler().postDelayed(this,100);
+            }
+        });
+
+        songBarPlayBtn.setOnClickListener(v -> myMediaPlayer.pausePlay());
+
+        Log.d("MainActivity", "onServiceConnected: mediaAudioService = " + mediaAudioService);
+        updateSongBar();
+        Intent intent = new Intent(this, MediaAudioService.class); // Build the intent for the service
+        startForegroundService(intent);
+    }
+
+    void musicListAdapterClickHandler(MusicListAdapter.ViewHolder holder){
+        Log.d("AdapterClick", "musicListAdapterClickHandler: " + holder.getBindingAdapterPosition());
+        mediaAudioService.setCurrentAudioFromIndex(holder.getBindingAdapterPosition());
+        mediaAudioService.disableAutoplay();
+        mediaAudioService.playCurrentMedia();
+        Intent intent = new Intent(this, MediaPlayerActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        this.startActivity(intent);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        mediaAudioService = null;
+        Log.d("MainActivity", "onServiceDisconnected: mediaAudioService = " + mediaAudioService);
+    }
+
+    public void doBindService() {
+        bindService(new Intent(this, MediaAudioService.class), this, BIND_AUTO_CREATE);
+        boundToService = true;
+    }
+
+    public void doUnbindService() {
+        unbindService(this);
+        boundToService = false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d("MainActivity", "onDestroy: MAIN ACTIVITY DESTROYED");
     }
 }

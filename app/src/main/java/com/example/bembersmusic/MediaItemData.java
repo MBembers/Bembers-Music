@@ -1,18 +1,17 @@
 package com.example.bembersmusic;
 
 import android.graphics.Bitmap;
-import android.media.MediaMetadataRetriever;
 
 import java.io.Serializable;
 
-public class AudioModel implements Serializable {
+public class MediaItemData implements Serializable {
     private String path;
     private String title;
     private String duration;
     private Bitmap image;
     private String author;
 
-    public AudioModel(String path, String title, String duration, String author) {
+    public MediaItemData(String path, String title, String duration, String author) {
         this.path = path;
         this.title = title;
         this.duration = duration;

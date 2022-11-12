@@ -13,16 +13,16 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Locale;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.ViewHolder>{
 
-    ArrayList<AudioModel> songsList;
+    ArrayList<MediaItemData> songsList;
     Context context;
+    ItemClickedListener itemClickedListener;
 
-    public MusicListAdapter(ArrayList<AudioModel> songsList, Context context) {
+    public MusicListAdapter(ArrayList<MediaItemData> songsList, Context context) {
         this.songsList = songsList;
         this.context = context;
     }
@@ -35,9 +35,7 @@ public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.View
 
     @Override
     public void onBindViewHolder( MusicListAdapter.ViewHolder holder, int position) {
-        AudioModel songData = songsList.get(holder.getAdapterPosition());
-        Log.d("ViewHolder", String.format(Locale.ENGLISH, "position: %d, title: %s, hasImage: %b",
-                position, songData.getTitle(), songData.getImage() != null));
+        MediaItemData songData = songsList.get(holder.getBindingAdapterPosition());
         holder.titleTextView.setText(songData.getTitle());
         holder.authorTextView.setText(songData.getAuthor());
         if(songData.getImage() == null)
@@ -51,22 +49,20 @@ public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.View
             holder.titleTextView.setTextColor(Color.parseColor("#FFFFFF"));
         }
 
-        holder.itemView.setOnClickListener(v -> {
-            //navigate to another acitivty
-            Log.d("ViewHolder", String.format(Locale.ENGLISH, "ON CLICK : position: %d, title: %s, hasImage: %b",
-                    position, songData.getTitle(), songData.getImage() != null));
-            MyMediaPlayer myMediaPlayer = MyMediaPlayer.getInstance();
-            myMediaPlayer.reset();
-            myMediaPlayer.disableAutoplay();
-            myMediaPlayer.setCurrentAudioFromIndex(holder.getAdapterPosition());
-            if(myMediaPlayer.getAudiosList() == null)
-                myMediaPlayer.setAudiosList(songsList);
-            Intent intent = new Intent(context, MusicPlayerActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(intent);
-        });
+        if(itemClickedListener != null)
+            holder.itemView.setOnClickListener(v->itemClickedListener.onItemClickedListener(holder));
 
     }
+
+    public interface ItemClickedListener {
+        void onItemClickedListener(MusicListAdapter.ViewHolder holder);
+    }
+
+    public void setOnItemClickedListener(MusicListAdapter.ItemClickedListener listener){
+        Log.d("MusicListAdapter", "setOnItemClickedListener: LISTENER SET" );
+        itemClickedListener = listener;
+    }
+
 
     @Override
     public int getItemCount() {
