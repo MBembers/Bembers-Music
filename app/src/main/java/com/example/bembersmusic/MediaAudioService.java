@@ -102,13 +102,14 @@ public class MediaAudioService extends Service {
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent1, 0);
 
         Intent playPrevIntent = new Intent(this, NotificationReceiver.class).setAction(ACTION_PREV);
-        PendingIntent playPrevPendingIntent = PendingIntent.getBroadcast(this, 0, playPrevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent playPrevPendingIntent = PendingIntent.getBroadcast(this, 0, playPrevIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
 
         Intent playNextIntent = new Intent(this, NotificationReceiver.class).setAction(ACTION_NEXT);
-        PendingIntent playNextPendingIntent = PendingIntent.getBroadcast(this, 0, playNextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent playNextPendingIntent = PendingIntent.getBroadcast(this, 0, playNextIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         Intent playPauseIntent = new Intent(this, NotificationReceiver.class).setAction(ACTION_PLAY_PAUSE);
-        PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, playPauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent playPausePendingIntent = PendingIntent.getBroadcast(this, 0, playPauseIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         int playPauseButton = myMediaPlayer.isPlaying() ? R.drawable.ic_baseline_pause_circle_outline_24 : R.drawable.ic_baseline_play_circle_outline_24;
 
