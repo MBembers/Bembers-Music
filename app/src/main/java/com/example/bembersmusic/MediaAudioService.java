@@ -99,7 +99,7 @@ public class MediaAudioService extends Service {
     Notification createNotification(){
         Intent intent1 = new Intent(this, MediaPlayerActivity.class);
         intent1.putExtra("notification", true);
-        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent1, 0);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent1, PendingIntent.FLAG_IMMUTABLE);
 
         Intent playPrevIntent = new Intent(this, NotificationReceiver.class).setAction(ACTION_PREV);
         PendingIntent playPrevPendingIntent = PendingIntent.getBroadcast(this, 0, playPrevIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
