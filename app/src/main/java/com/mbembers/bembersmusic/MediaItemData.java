@@ -10,6 +10,7 @@ public class MediaItemData implements Serializable {
     private String duration;
     private Bitmap image;
     private String author;
+    private byte [] imageData;
 
     public MediaItemData(String path, String title, String duration, String author) {
         this.path = path;
@@ -58,4 +59,11 @@ public class MediaItemData implements Serializable {
         this.author = author;
     }
 
+    public byte[] getImageData() {
+        return imageData;
+    }
+
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
+    }
 }

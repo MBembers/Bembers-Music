@@ -16,6 +16,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
+import android.media.session.MediaController;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -40,7 +41,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     ImageButton songBarPlayBtn;
     RelativeLayout songBarLayout;
     ArrayList<MediaItemData> songsList = new ArrayList<>();
-    MyMediaPlayer myMediaPlayer;
     private MediaAudioService mediaAudioService;
     private boolean boundToService;
 
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         songBarPlayBtn = findViewById(R.id.song_bar_play);
         songBarIcon = findViewById(R.id.song_bar_icon);
 
-        if(checkPermission() == false){
+        if(!checkPermission()){
             requestPermission();
             return;
         }
@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.DATA,
                 MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.AUTHOR
+                MediaStore.Audio.Media.ARTIST
         };
 
         String selection = MediaStore.Audio.Media.IS_MUSIC +" != 0";
@@ -91,22 +91,29 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 if(data != null) {
                     Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                     songData.setImage(bitmap);
+                    songData.setImageData(data);
                 }
                 songsList.add(songData);
             }
         }
+        cursor.close();
 
         doBindService();
     }
 
     public void updateSongBar(){
-        Log.d("Handler", "MainActivityHandler: ");
         recyclerView.refreshDrawableState();
-        songBarLayout.setVisibility(View.VISIBLE);
-        songBarTitleTextView.setText(mediaAudioService.getCurrentAudio().getTitle());
-        songBarAuthorTextView.setText(mediaAudioService.getCurrentAudio().getAuthor());
-        if(mediaAudioService.getCurrentAudio().getImage() != null)
-            songBarIcon.setImageBitmap(mediaAudioService.getCurrentAudio().getImage());
+        Log.d("Handler", "MainActivityHandler: ");
+        Log.d("MainActivity", "updateSongBar: MEDIA METADATA: " + mediaAudioService.getMediaController().getMetadata().getDescription().toString());
+
+        if(mediaAudioService.getMediaController().getMetadata().getDescription().getTitle() != null)
+            songBarLayout.setVisibility(View.VISIBLE);
+        else
+            songBarLayout.setVisibility(View.GONE);
+        songBarTitleTextView.setText(mediaAudioService.getMediaController().getMetadata().getDescription().getTitle());
+        songBarAuthorTextView.setText(mediaAudioService.getMediaController().getMetadata().getDescription().getDescription());
+        if(mediaAudioService.getMediaController().getMetadata().getDescription().getIconBitmap() != null)
+            songBarIcon.setImageBitmap(mediaAudioService.getMediaController().getMetadata().getDescription().getIconBitmap());
         else songBarIcon.setImageDrawable(AppCompatResources.getDrawable(this, R.drawable.music_icon));
     }
 
@@ -116,13 +123,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     boolean checkPermission(){
         int result = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
-        result = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE);
 
-        if(result == PackageManager.PERMISSION_GRANTED){
-            return true;
-        }else{
-            return false;
-        }
+        return result == PackageManager.PERMISSION_GRANTED;
     }
 
     void requestPermission(){
@@ -142,14 +144,14 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case 77:
-                // If request is cancelled, the result arrays are empty.
+            case 727:
                 if (grantResults.length > 0 &&
                         grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                         setup();
                 } else {
                     requestPermission();
                 }
-                return;
+                break;
         }
     }
 
@@ -159,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         super.onResume();
         Log.d("MainActivity", "onResume: mediaAudioService = " + mediaAudioService);
         if(recyclerView != null){
-            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext());
+            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext(), mediaAudioService);
             listAdapter.setOnItemClickedListener(this::musicListAdapterClickHandler);
             recyclerView.setAdapter(listAdapter);
         }
@@ -181,15 +183,14 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         MediaAudioService.MyBinder myBinder = (MediaAudioService.MyBinder) iBinder;
         mediaAudioService = myBinder.getService();
-        myMediaPlayer = mediaAudioService.createMediaPlayer(songsList);
-        myMediaPlayer.prepareCurrentAudio();
+        mediaAudioService.setSongList(songsList);
 
         if(songsList.size()==0){
             noMusicTextView.setVisibility(View.VISIBLE);
         }else{
             //recyclerview
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
-            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext());
+            MusicListAdapter listAdapter = new MusicListAdapter(songsList, getApplicationContext(), mediaAudioService);
             listAdapter.setOnItemClickedListener(this::musicListAdapterClickHandler);
             recyclerView.setAdapter(listAdapter);
         }
@@ -200,16 +201,18 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             startActivity(intent);
         });
 
-        myMediaPlayer.addOnAudioChangedListener(this::updateSongBar);
-        myMediaPlayer.addOnAudioChangedListener(this::updateRecycleView);
-        myMediaPlayer.setOnAudioStartedListener(this::updateSongBar);
+        mediaAudioService.addOnAudioChangedListener(this::updateSongBar);
+        mediaAudioService.addOnAudioChangedListener(this::updateRecycleView);
+        mediaAudioService.addOnAudioStartedListener(this::updateSongBar);
+
 
         MainActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    if (myMediaPlayer != null) {
-                        if (myMediaPlayer.isPlaying()) {
+                    if (mediaAudioService != null) {
+                        updateSongBar();
+                        if (mediaAudioService.isPlaying()) {
                             songBarPlayBtn.setImageResource(R.drawable.ic_baseline_pause_circle_outline_24);
                         } else {
                             songBarPlayBtn.setImageResource(R.drawable.ic_baseline_play_circle_outline_24);
@@ -219,11 +222,11 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 catch (IllegalStateException e){
                     e.printStackTrace();
                 }
-                new Handler().postDelayed(this,100);
+                new Handler().postDelayed(this,150);
             }
         });
 
-        songBarPlayBtn.setOnClickListener(v -> myMediaPlayer.pausePlay());
+        songBarPlayBtn.setOnClickListener(v -> mediaAudioService.pausePlay());
 
         Log.d("MainActivity", "onServiceConnected: mediaAudioService = " + mediaAudioService);
         updateSongBar();
@@ -233,9 +236,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     void musicListAdapterClickHandler(MusicListAdapter.ViewHolder holder){
         Log.d("AdapterClick", "musicListAdapterClickHandler: " + holder.getAdapterPosition());
-        mediaAudioService.setCurrentAudioFromIndex(holder.getAdapterPosition());
-        mediaAudioService.disableAutoplay();
-        mediaAudioService.playCurrentMedia();
+        mediaAudioService.seekToMediaItem(holder.getBindingAdapterPosition());
+        mediaAudioService.play();
         Intent intent = new Intent(this, MediaPlayerActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         this.startActivity(intent);

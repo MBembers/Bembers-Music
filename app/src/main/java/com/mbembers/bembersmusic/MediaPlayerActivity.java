@@ -9,6 +9,8 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -24,8 +26,7 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
     private SeekBar seekBar;
     private ImageView pausePlayBtn,nextBtn,previousBtn,musicIcon,shuffleBtn,repeatBtn,backBtn;
     private ArrayList<MediaItemData> songsList;
-    private MediaItemData currentSong;
-    private MyMediaPlayer myMediaPlayer = MyMediaPlayer.getInstance();
+//    private MediaItemData currentSong;
     private MediaAudioService mediaAudioService;
     boolean isTrackingSeekBarTouch = false;
     private boolean boundToService;
@@ -48,19 +49,10 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
         shuffleBtn = findViewById(R.id.shuffle);
         repeatBtn = findViewById(R.id.repeat);
         backBtn = findViewById(R.id.back);
-        
+
         titleTextView.setSelected(true);
 
         doBindService();
-
-        if(myMediaPlayer != null){
-//            songsList = myMediaPlayer.getAudiosList();
-//
-//            if(!myMediaPlayer.isPlaying())
-//                myMediaPlayer.playCurrentAudio();
-//            setUpCurrentSongAndData();
-            myMediaPlayer.addOnAudioChangedListener(this::setUpCurrentSongAndData);
-        }
     }
 
 
@@ -70,8 +62,9 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
             public void run() {
                 try {
                     if(mediaAudioService != null){
+                        setUpCurrentSongAndData();
                         if(!isTrackingSeekBarTouch)
-                            seekBar.setProgress(mediaAudioService.getCurrentPosition());
+                            seekBar.setProgress((int) mediaAudioService.getCurrentPosition());
                         currentTimeTextView.setText(convertToMMSS(mediaAudioService.getCurrentPosition()+""));
 
                         if(mediaAudioService.isPlaying()){
@@ -94,17 +87,17 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
     }
 
     private void setUpCurrentSongAndData(){
-        currentSong = mediaAudioService.getCurrentAudio();
-        if(currentSong.getImage() == null)
+        MediaMetadataCompat metadata = mediaAudioService.getMediaController().getMetadata();
+        if(metadata.getDescription().getIconBitmap() == null)
             musicIcon.setImageDrawable(AppCompatResources.getDrawable(
                     this, R.drawable.music_icon_big));
             else
-            musicIcon.setImageBitmap(currentSong.getImage());
+            musicIcon.setImageBitmap(metadata.getDescription().getIconBitmap());
 
-        titleTextView.setText(currentSong.getTitle());
-        totalTimeTextView.setText(convertToMMSS(currentSong.getDuration()));
+        titleTextView.setText(metadata.getDescription().getTitle());
+        totalTimeTextView.setText(convertToMMSS(mediaAudioService.getCurrentDuration()));
         seekBar.setProgress(0);
-        seekBar.setMax(Integer.parseInt(mediaAudioService.getCurrentAudio().getDuration()));
+        seekBar.setMax((int) mediaAudioService.getCurrentDuration());
         repeatBtn.setColorFilter(mediaAudioService.isLooping() ? getColor(R.color.orange) :
                 getColor(R.color.white), android.graphics.PorterDuff.Mode.SRC_IN);
     }
@@ -116,7 +109,11 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
         shuffleBtn.setOnClickListener(v -> switchShuffle());
         repeatBtn.setOnClickListener(v -> switchLooping());
         backBtn.setOnClickListener(v -> finish());
-//        musicIcon.setOnClickListener(v -> showNotification());
+        musicIcon.setOnClickListener(v -> test());
+    }
+
+    private void test() {
+        Log.d("MediaPlayerActivity", "sussy: isLooping: " + mediaAudioService.isLooping() + " isShuffle: " + mediaAudioService.isShuffle());
     }
 
     private void switchShuffle() {
@@ -142,12 +139,6 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
     }
     @Override
     public void pausePlay(){
-//        int pbState = MediaControllerCompat.getMediaController(MediaPlayerActivity.this).getPlaybackState().getState();
-//        if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-//            MediaControllerCompat.getMediaController(MediaPlayerActivity.this).getTransportControls().pause();
-//        } else {
-//            MediaControllerCompat.getMediaController(MediaPlayerActivity.this).getTransportControls().play();
-//        }
         mediaAudioService.pausePlay();
     }
 
@@ -180,7 +171,7 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
         Log.d("XXX", "onServiceConnected: CONNECTED");
         setupUi();
         setUpCurrentSongAndData();
-
+        mediaAudioService.addOnAudioChangedListener(this::setUpCurrentSongAndData);
         Intent intent = new Intent(this, MediaAudioService.class); // Build the intent for the service
         startForegroundService(intent);
     }
@@ -212,6 +203,12 @@ public class MediaPlayerActivity extends AppCompatActivity implements ServiceCon
         return String.format(Locale.ENGLISH, "%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(millis) % TimeUnit.HOURS.toMinutes(1),
                 TimeUnit.MILLISECONDS.toSeconds(millis) % TimeUnit.MINUTES.toSeconds(1));
+    }
+
+    public static String convertToMMSS(long duration){
+        return String.format(Locale.ENGLISH, "%02d:%02d",
+                TimeUnit.MILLISECONDS.toMinutes(duration) % TimeUnit.HOURS.toMinutes(1),
+                TimeUnit.MILLISECONDS.toSeconds(duration) % TimeUnit.MINUTES.toSeconds(1));
     }
 
     @Override

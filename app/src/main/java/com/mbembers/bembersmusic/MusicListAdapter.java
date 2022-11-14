@@ -16,13 +16,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.ViewHolder>{
 
+    private final MediaAudioService mediaAudioService;
     ArrayList<MediaItemData> songsList;
     Context context;
     ItemClickedListener itemClickedListener;
 
-    public MusicListAdapter(ArrayList<MediaItemData> songsList, Context context) {
+    public MusicListAdapter(ArrayList<MediaItemData> songsList, Context context, MediaAudioService service) {
         this.songsList = songsList;
         this.context = context;
+        this.mediaAudioService = service;
     }
 
     @Override
@@ -33,6 +35,7 @@ public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.View
 
     @Override
     public void onBindViewHolder( MusicListAdapter.ViewHolder holder, int position) {
+//        Log.d("MainActivity", "onBindViewHolder: Service: " + mediaAudioService);
         MediaItemData songData = songsList.get(holder.getAdapterPosition());
         holder.titleTextView.setText(songData.getTitle());
         holder.authorTextView.setText(songData.getAuthor());
@@ -40,15 +43,16 @@ public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.View
             holder.iconImageView.setImageDrawable(AppCompatResources.getDrawable(context, R.drawable.music_icon));
             else
             holder.iconImageView.setImageBitmap(songData.getImage());
+        if(itemClickedListener != null)
+            holder.itemView.setOnClickListener(v->itemClickedListener.onItemClickedListener(holder));
 
-        if(MyMediaPlayer.getCurrentIndex() == position){
+        if (mediaAudioService == null) return;
+        if( mediaAudioService.getCurrentAudioIndex() == position){
             holder.titleTextView.setTextColor(Color.parseColor("#FF0000"));
         }else{
             holder.titleTextView.setTextColor(Color.parseColor("#FFFFFF"));
         }
 
-        if(itemClickedListener != null)
-            holder.itemView.setOnClickListener(v->itemClickedListener.onItemClickedListener(holder));
 
     }
 
