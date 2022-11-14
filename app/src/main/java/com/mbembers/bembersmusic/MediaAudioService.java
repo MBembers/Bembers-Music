@@ -1,9 +1,9 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
-import static com.example.bembersmusic.ApplicationClass.ACTION_NEXT;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PLAY_PAUSE;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PREV;
-import static com.example.bembersmusic.ApplicationClass.CHANNEL_ID_1;
+import static com.mbembers.bembersmusic.ApplicationClass.ACTION_NEXT;
+import static com.mbembers.bembersmusic.ApplicationClass.ACTION_PLAY_PAUSE;
+import static com.mbembers.bembersmusic.ApplicationClass.ACTION_PREV;
+import static com.mbembers.bembersmusic.ApplicationClass.CHANNEL_ID_1;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -18,6 +18,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector;
+
 import java.util.ArrayList;
 
 
@@ -25,12 +27,15 @@ public class MediaAudioService extends Service {
     private final IBinder binder = new MyBinder();
     MyMediaPlayer myMediaPlayer;
     private MediaSessionCompat mediaSession;
+    private MediaSessionConnector mediaSessionConnector;
     ArrayList<MediaItemData> mediaItems = new ArrayList<>();
 
     @Override
     public void onCreate() {
         super.onCreate();
         mediaSession = new MediaSessionCompat(this, "MediaAudioPlayer");
+        mediaSessionConnector = new MediaSessionConnector(mediaSession);
+        mediaSessionConnector.setPlayer(myMediaPlayer);
     }
 
     public class MyBinder extends Binder {
@@ -136,11 +141,11 @@ public class MediaAudioService extends Service {
         return myMediaPlayer.isPlaying();
     }
     void next(){
-        myMediaPlayer.stepToNextAudio();
+        myMediaPlayer.stepToNextAudio(true);
         updateNotification();
     }
     void prev(){
-        myMediaPlayer.stepToPreviousAudio();
+        myMediaPlayer.stepToPreviousAudio(true);
         updateNotification();
     }
     void pausePlay(){

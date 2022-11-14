@@ -1,4 +1,4 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
 import android.graphics.Bitmap;
 

@@ -1,4 +1,4 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
 import android.media.MediaPlayer;
 import android.util.Log;
@@ -13,7 +13,7 @@ public class MyMediaPlayer extends MediaPlayer{
     ArrayList<MediaItemData> audiosList;
     LinkedList<MediaItemData> audiosQueue;
     MediaItemData currentAudio;
-    boolean autoplay = false;
+    boolean autoplay;
     private static int currentIndex = -1;
     private boolean shuffle;
 
@@ -22,6 +22,7 @@ public class MyMediaPlayer extends MediaPlayer{
 
     public MyMediaPlayer(ArrayList<MediaItemData> audiosList) {
         super();
+        this.audiosQueue = new LinkedList<>();
         this.audiosList = audiosList;
         this.currentAudio = audiosList.get(0);
         this.autoplay = false;
@@ -72,40 +73,27 @@ public class MyMediaPlayer extends MediaPlayer{
         currentAudio = audiosList.get(currentIndex);
     }
 
-    public void stepToNextAudio(){
-        if(currentIndex == audiosList.size() - 1)
-            return;
-        if(shuffle){
-            Random random = new Random();
-            currentIndex = random.nextInt(audiosList.size());
-        }
-        else{
-            currentIndex += 1;
-        }
-        reset();
-        setCurrentAudioFromCurrentIndex();
-        playCurrentAudio();
-        notifyAudioChanged();
-    }
-
     public void stepToNextAudio(boolean playNext){
         if(currentIndex == audiosList.size() - 1)
             return;
-        if(shuffle){
+        if(shuffle && audiosQueue.isEmpty()){
             Random random = new Random();
             currentIndex = random.nextInt(audiosList.size());
         }
+        else if(!audiosQueue.isEmpty()){
+            setNextAudioFromQueue();
+        }
         else{
             currentIndex += 1;
+            setCurrentAudioFromCurrentIndex();
         }
         reset();
-        setCurrentAudioFromCurrentIndex();
-        if (playNext)
+        if(playNext)
             playCurrentAudio();
         notifyAudioChanged();
     }
 
-    public void stepToPreviousAudio(){
+    public void stepToPreviousAudio(boolean playPrev){
         if(getCurrentPosition() >= 2000 || currentIndex == 0){
             seekTo(0);
             return;
@@ -119,25 +107,7 @@ public class MyMediaPlayer extends MediaPlayer{
         }
         reset();
         setCurrentAudioFromCurrentIndex();
-        playCurrentAudio();
-        notifyAudioChanged();
-    }
-
-    public void stepToPreviousAudio(boolean playNext){
-        if(getCurrentPosition() >= 2000 || currentIndex == 0){
-            seekTo(0);
-            return;
-        }
-        if(shuffle){
-            Random random = new Random();
-            currentIndex = random.nextInt(audiosList.size());
-        }
-        else{
-            currentIndex -= 1;
-        }
-        reset();
-        setCurrentAudioFromCurrentIndex();
-        if (playNext)
+        if (playPrev)
             playCurrentAudio();
         notifyAudioChanged();
     }
@@ -164,14 +134,14 @@ public class MyMediaPlayer extends MediaPlayer{
 //        audiosQueue = (LinkedList<AudioModel>) audiosList.subList(currentIndex, audiosList.size());
     }
 
-    public void getNextAudioFromQueue(){
+    public void setNextAudioFromQueue(){
         currentAudio = audiosQueue.pollFirst();
     }
 
     private void completionHandler() {
         Log.d("AudioCompletion", "completionHandler: Audio Completed");
         if (autoplay){
-            stepToNextAudio();
+            stepToNextAudio(true);
         }
     }
 
@@ -225,6 +195,18 @@ public class MyMediaPlayer extends MediaPlayer{
 
     public void setAudiosQueue(LinkedList<MediaItemData> audiosQueue) {
         this.audiosQueue = audiosQueue;
+    }
+
+    public void addAudioToQueue(MediaItemData mediaItem){
+        audiosQueue.push(mediaItem);
+    }
+
+    public void clearAudioQueue(){
+        audiosQueue = new LinkedList<>();
+    }
+
+    public boolean isAudioQueueEmpty(){
+        return audiosQueue.isEmpty();
     }
 
     public MediaItemData getCurrentAudio() {

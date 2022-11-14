@@ -1,38 +1,20 @@
-package com.example.bembersmusic;
-
-import static com.example.bembersmusic.ApplicationClass.ACTION_NEXT;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PLAY_PAUSE;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PREV;
-import static com.example.bembersmusic.ApplicationClass.CHANNEL_ID_1;
-import static com.example.bembersmusic.ApplicationClass.CHANNEL_ID_2;
+package com.mbembers.bembersmusic;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.app.NotificationCompat;
 
-import android.app.ActivityManager;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 

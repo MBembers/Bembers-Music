@@ -1,4 +1,4 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.content.res.AppCompatResources;
@@ -232,8 +232,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     void musicListAdapterClickHandler(MusicListAdapter.ViewHolder holder){
-        Log.d("AdapterClick", "musicListAdapterClickHandler: " + holder.getBindingAdapterPosition());
-        mediaAudioService.setCurrentAudioFromIndex(holder.getBindingAdapterPosition());
+        Log.d("AdapterClick", "musicListAdapterClickHandler: " + holder.getAdapterPosition());
+        mediaAudioService.setCurrentAudioFromIndex(holder.getAdapterPosition());
         mediaAudioService.disableAutoplay();
         mediaAudioService.playCurrentMedia();
         Intent intent = new Intent(this, MediaPlayerActivity.class);

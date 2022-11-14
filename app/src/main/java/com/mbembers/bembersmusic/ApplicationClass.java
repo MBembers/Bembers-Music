@@ -1,7 +1,6 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
 import android.app.Application;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.os.Build;

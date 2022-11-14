@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.bembersmusic'
+    namespace 'com.mbembers.bembersmusic'
     compileSdk 32
 
     defaultConfig {
-        applicationId "com.example.bembersmusic"
+        applicationId "com.mbembers.bembersmusic"
         minSdk 28
         targetSdk 32
         versionCode 1
@@ -29,7 +29,8 @@ android {
 }
 
 dependencies {
-//    implementation 'androidx.media:media:1.6.0'
+    implementation 'com.google.android.exoplayer:extension-mediasession:2.18.1'
+    implementation 'androidx.media:media:1.6.0'
     implementation 'com.google.android.exoplayer:exoplayer:2.18.1'
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.6.1'

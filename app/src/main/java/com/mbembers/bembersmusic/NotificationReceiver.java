@@ -1,8 +1,4 @@
-package com.example.bembersmusic;
-
-import static com.example.bembersmusic.ApplicationClass.ACTION_NEXT;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PLAY_PAUSE;
-import static com.example.bembersmusic.ApplicationClass.ACTION_PREV;
+package com.mbembers.bembersmusic;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

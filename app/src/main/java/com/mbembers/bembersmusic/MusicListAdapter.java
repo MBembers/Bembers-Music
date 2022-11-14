@@ -1,7 +1,6 @@
-package com.example.bembersmusic;
+package com.mbembers.bembersmusic;
 
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -11,7 +10,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.Locale;
 
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,7 +33,7 @@ public class MusicListAdapter extends RecyclerView.Adapter<MusicListAdapter.View
 
     @Override
     public void onBindViewHolder( MusicListAdapter.ViewHolder holder, int position) {
-        MediaItemData songData = songsList.get(holder.getBindingAdapterPosition());
+        MediaItemData songData = songsList.get(holder.getAdapterPosition());
         holder.titleTextView.setText(songData.getTitle());
         holder.authorTextView.setText(songData.getAuthor());
         if(songData.getImage() == null)
